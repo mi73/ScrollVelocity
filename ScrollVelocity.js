@@ -12,6 +12,7 @@ import 'velocity-animate/velocity.ui';
  * data-duration アニメーション時間
  * data-delay 遅延時間
  * data-bias 発火位置のバイアス値
+ * data-target 発火基準となるDOM(オプション)
  *
  * @example
  * new ScrollVelocity('.scrollVelocity');
@@ -26,7 +27,8 @@ import 'velocity-animate/velocity.ui';
  *      data-easing="[250, 18]"
  *      data-duration="500"
  *      data-delay="1600"
- *      data-bias="-1000">
+ *      data-bias="-1000"
+ *      data-target=".wrapper">
  */
 export default class ScrollVelocity {
 
@@ -34,7 +36,7 @@ export default class ScrollVelocity {
    * @param {String} selector 領域のセレクター
    * @param {Number} threshold 発火位置
    */
-  constructor(selector, threshold = 400) {
+  constructor(selector = '.scrollVelocity', threshold = 400) {
     this.$elements = $(selector);
     this.elements = [];
     this.length = this.$elements.length;
@@ -61,13 +63,14 @@ export default class ScrollVelocity {
     _.each(this.$elements, (_element) => {
       const element = _element;
       const $this = $(element);
+      const $target = $this.data('target') && $($this.data('target'));
       element.isShown = false;
       element.delay = $this.data('delay') || 0;
       element.duration = $this.data('duration') || 800;
       element.easing = $this.data('easing') || [250, 20];
-      element.bias = Number($this.data('bias')) || 0;
+      element.bias = ($target ? Number($target.data('bias')) : Number($this.data('bias'))) || 0;
       element.property = $this.data('effect') || 'fadeIn';
-      element.offsetY = $this.offset().top;
+      element.offsetY = $target ? $target.offset().top : $this.offset().top;
       this.elements.push(element);
     });
 
@@ -93,11 +96,12 @@ export default class ScrollVelocity {
    */
   resize() {
     this.windowHeight = $(window).height();
-    // オフセットを更新する
+
     _.each(this.elements, (_element) => {
       const element = _element;
       const $this = $(element);
-      element.offsetY = $this.offset().top;
+      const $target = $this.data('target') && $($this.data('target'));
+      element.offsetY = $target ? $target.offset().top : $this.offset().top;
     });
   }
 
@@ -112,16 +116,21 @@ export default class ScrollVelocity {
       _.each(this.elements, (_element) => {
         const element = _element;
         // 位置を確認して表示する
-        if (!element.isShown && threshold > element.offsetY + element.bias) {
+        if (!element.isShown && threshold > element.offsetY - element.bias) {
           element.isShown = true;
           element.style.display = 'none';
-          element.style.opacity = 1;
-
+          const willMoveOpacity = _.isObject(element.property)
+            && Object.prototype.hasOwnProperty.call(element.property, 'opacity');
           velocity(element, element.property, {
             display: 'block',
             delay: element.delay,
             easing: element.easing,
             duration: element.duration,
+            begin: () => {
+              $(element).trigger('scrollVelocityBegin');
+              if (!willMoveOpacity) element.style.opacity = 1;
+            },
+            complete: () => { $(element).trigger('scrollVelocityComplete'); },
           });
 
           this.shownCount += 1;
