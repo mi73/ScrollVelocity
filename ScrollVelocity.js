@@ -23,7 +23,7 @@ import 'velocity-animate/velocity.ui';
  *      ata-delay="1600"
  *      data-bias="-1000">
  * <div class="scrollVelocity"
- *      data-effect='transition.transition.bounceLeftIn'
+ *      data-effect='transition.bounceLeftIn'
  *      data-easing="[250, 18]"
  *      data-duration="500"
  *      data-delay="1600"
